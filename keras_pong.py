@@ -6,6 +6,8 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
 
 import numpy as np
+import random
+import math 
 
 import gym
 import os
@@ -27,14 +29,8 @@ print('Height', height)
 print('Width', width)
 print('Color Depth', color)
 
-env.reset()
-
-steps = 50
-step = 0
-
 # input image dimensions
 img_rows, img_cols = height, width
-
 
 model = Sequential()
 '''
@@ -67,32 +63,69 @@ the games we considered.
 '''
 model.add(Dense(3, activation=None))
 
-model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=keras.optimizers.Adadelta(),
+model.compile(loss=keras.losses.binary_crossentropy,
+              optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 
-
-# model.fit(state, reward, epochs=1, verbose=0)
-
 episodes = 20
-
-future_action = 0
+epsilon = 0.05
+gamma = 0.95
+replayMemory = [None]
+firstAction = true
+batchSize = 10
+possibleActions = [1, 2, 3]
 
 for i in range(episodes):
-    env.reset()
+    state = env.reset()
     while not done:
-        random_action = env.action_space.sample()
-        if future_action == 0:
-            action = random_action
-        else:
-            action = future_action
-
-        state, reward, done, _ = env.step(random_action)
-        state = state.reshape(1, height, width, color)
-        future_action = np.argmax(model.predict(state, batch_size=1))
-        if done:
-            break
-
+        
+        #if it's the first action, just do a random one since neural network has no training yet
+        if firstAction
+            action = math.floor(random.random()*len(possibleActions))
+            firstAction = false
+        else
+            #with probability epsilon do a random action, otherwise use the neural network to choose best action
+            randomNumber = random.random()
+            if randomNumber < epsilon
+                action = math.floor(random.random()*len(possibleActions))
+            else
+                reshapedState = state.reshape(1,height,width,color)
+                action = np.argmax(model.predict(reshapedState, batch_size=1))
+                
+        #save the current state and action, along with the reward and the state produced by this combo
+        currentState = state
+        state, reward, done, _ = env.step(possibleActions[action])
+        replayMemory.append([currentState, action, reward, done, state])
+        
+        #if replay memory is less than the batch size, 
+        #use all of the replay memory, otherwise take a random sample
+        if len(replayMemory) <= batchSize
+            actualBatchSize = len(replayMemory)
+            memoryIndices = list(range(actualBatchSize))
+        else
+            actualBatchSize = batchSize
+            memoryIndices = random.sample(range(len(replayMemory)), batchSize)
+            
+        #create the batched states and y_true arrays
+        batchedStates = [None]
+        y_true = zeros(actualBatchSize,len(possibleActions))
+        for j in range(memoryIndices):
+            #add the current state from the replay memory to the batched states
+            batchedStates.append(replayMemory[j][0])
+            #if done = true in the replay memory, just set the index of y_true corresponding 
+            #to the action taken to the reward received
+            if replayMemory[j][3]
+                y_true[j][replayMemory[j][1]] = replayMemory[j][2]
+            else
+                #in addition to setting the index of y_true corresponding to the 
+                #action taken to the reward received, add the value of Q for the next state,
+                #discounted by gamma
+                reshapedState = replayMemory[j][4].reshape(1,height,width,color)
+                futureQ = model.predict(reshapedState,batch_size=1)
+                y_true[j] = [gamma*k for k in futureQ]
+                y_true[j][replayMemory[j][1]] += replayMemory[j][2]
+        model.train_on_batch(batchedStates,y_true)
+        
 # score = model.evaluate(x_test, y_test, verbose=0)
 # print('Test loss:', score[0])
 # print('Test accuracy:', score[1])
