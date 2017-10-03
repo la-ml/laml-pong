@@ -68,7 +68,7 @@ the games we considered.
 '''
 model.add(Dense(len(possibleActions), activation='softmax'))
 
-model.compile(loss=keras.losses.binary_crossentropy,
+model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 
