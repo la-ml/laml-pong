@@ -76,7 +76,7 @@ episodes = 20
 epsilon = 0.05
 gamma = 0.95
 replayMemory = [None]
-firstAction = true
+firstAction = True
 batchSize = 10
 
 for i in range(episodes):
@@ -87,15 +87,15 @@ for i in range(episodes):
     while not done:
         
         #if it's the first action, do random because network hasn't been trained yet
-        if firstAction
+        if firstAction:
             action = math.floor(random.random()*len(possibleActions))
-            firstAction = false
-        else
+            firstAction = False
+        else:
             #with probability epsilon do a random action, otherwise use the neural network to choose best action
             randomNumber = random.random()
-            if randomNumber < epsilon
+            if randomNumber < epsilon:
                 action = math.floor(random.random()*len(possibleActions))
-            else
+            else:
                 reshapedSequence = frameSequence.reshape(1,height*numFrames,width,color)
                 action = np.argmax(model.predict(reshapedSequence, batch_size=1))
                 
@@ -116,25 +116,25 @@ for i in range(episodes):
         
         #if replay memory is less than the batch size, 
         #use all of the replay memory, otherwise take a random sample
-        if len(replayMemory) <= batchSize
+        if len(replayMemory) <= batchSize:
             actualBatchSize = len(replayMemory)
             memoryIndices = list(range(actualBatchSize))
-        else
+        else:
             actualBatchSize = batchSize
             memoryIndices = random.sample(range(len(replayMemory)), batchSize)
             
         #create the batched states and y_true arrays
         batchedStates = np.zeros((actualBatchSize,height*numFrames,width,color))
         y_true = np.zeros((actualBatchSize,len(possibleActions)))
-        for j in range(memoryIndices):
+        for j in range(len(memoryIndices)):
             theMemory = replayMemory[memoryIndices[j]]
             #add the current state from the replay memory to the batched states
             batchedStates[j,:,:,:] = theMemory[0]
             #if done = true in the replay memory, just set the index of y_true corresponding 
             #to the action taken to the reward received
-            if theMemory[3]
+            if theMemory[3]:
                 y_true[j,theMemory[1]] = theMemory[2]
-            else
+            else:
                 #in addition to setting the index of y_true corresponding to the 
                 #action taken to the reward received, add the value of Q for the next state,
                 #discounted by gamma
