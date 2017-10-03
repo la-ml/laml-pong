@@ -7,16 +7,15 @@ from keras import backend as K
 
 import numpy as np
 import random
-import math 
+import math
 
 import gym
 import os
 
 # Stop complaining about my CPU's Power Level
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
+#os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 model = Sequential()
-
 
 # Q Network
 env = gym.make('Pong-v0')
@@ -34,8 +33,8 @@ img_rows, img_cols = height, width
 
 model = Sequential()
 '''
-[2] The first hidden layer convolves 16 8×8 filters with stride 4 with the 
-    input image and applies a rectifier non-linearity.  
+[2] The first hidden layer convolves 16 8×8 filters with stride 4 with the
+    input image and applies a rectifier non-linearity.
 '''
 model.add(Conv2D(16,
                  kernel_size=(8, 8),
@@ -43,13 +42,15 @@ model.add(Conv2D(16,
                  strides=4,
                  input_shape=(height, width, color)))
 '''
-[3] The second hidden layer convolves 32 4×4 filters with stride 2, 
-    - [3.1] again followed by a rectifier nonlinearity. 
+[3] The second hidden layer convolves 32 4×4 filters with stride 2,
+    - [3.1] again followed by a rectifier nonlinearity.
 '''
 model.add(Conv2D(32,
                  kernel_size=(4, 4),
                  activation='relu',
                  strides=2))
+
+model.add(Flatten())
 '''
 [4] The final hidden layer is fully-connected and consists of 256 
     rectifier units.  
@@ -67,31 +68,31 @@ model.compile(loss=keras.losses.binary_crossentropy,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 
+model.summary()
+
 episodes = 20
 epsilon = 0.05
 gamma = 0.95
-replayMemory = [None]
-firstAction = true
+replayMemory = []
+firstAction = True
 batchSize = 10
 possibleActions = [1, 2, 3]
 
 for i in range(episodes):
     state = env.reset()
     while not done:
-        
         #if it's the first action, just do a random one since neural network has no training yet
-        if firstAction
+        if firstAction:
             action = math.floor(random.random()*len(possibleActions))
-            firstAction = false
-        else
+            firstAction = False
+        else:
             #with probability epsilon do a random action, otherwise use the neural network to choose best action
             randomNumber = random.random()
-            if randomNumber < epsilon
+            if randomNumber < epsilon:
                 action = math.floor(random.random()*len(possibleActions))
-            else
+            else:
                 reshapedState = state.reshape(1,height,width,color)
                 action = np.argmax(model.predict(reshapedState, batch_size=1))
-                
         #save the current state and action, along with the reward and the state produced by this combo
         currentState = state
         state, reward, done, _ = env.step(possibleActions[action])
@@ -99,32 +100,50 @@ for i in range(episodes):
         
         #if replay memory is less than the batch size, 
         #use all of the replay memory, otherwise take a random sample
-        if len(replayMemory) <= batchSize
+        if len(replayMemory) <= batchSize:
             actualBatchSize = len(replayMemory)
             memoryIndices = list(range(actualBatchSize))
-        else
+        else:
             actualBatchSize = batchSize
             memoryIndices = random.sample(range(len(replayMemory)), batchSize)
             
         #create the batched states and y_true arrays
-        batchedStates = [None]
-        y_true = zeros(actualBatchSize,len(possibleActions))
-        for j in range(memoryIndices):
+        batchedStates = np.empty(shape=(actualBatchSize, height, width, color))
+        #print("actualBatchSize: ", actualBatchSize)
+        #print("possibleActions Len:", len(possibleActions))
+        y_true = np.empty(shape=(actualBatchSize,len(possibleActions)))
+        for j in range(len(memoryIndices)):
             #add the current state from the replay memory to the batched states
-            batchedStates.append(replayMemory[j][0])
+            #print("j: ", j)
+            #print("replayMemory[j]: ", replayMemory[j])
+            batchedStates[j,:,:,:] = replayMemory[j][0]
             #if done = true in the replay memory, just set the index of y_true corresponding 
             #to the action taken to the reward received
-            if replayMemory[j][3]
-                y_true[j][replayMemory[j][1]] = replayMemory[j][2]
-            else
+            if replayMemory[j][3]:
+                y_true[j,replayMemory[j][1]] = replayMemory[j][2]
+            else:
                 #in addition to setting the index of y_true corresponding to the 
                 #action taken to the reward received, add the value of Q for the next state,
                 #discounted by gamma
                 reshapedState = replayMemory[j][4].reshape(1,height,width,color)
                 futureQ = model.predict(reshapedState,batch_size=1)
-                y_true[j] = [gamma*k for k in futureQ]
-                y_true[j][replayMemory[j][1]] += replayMemory[j][2]
-        model.train_on_batch(batchedStates,y_true)
+                
+                #print("FutureQ: ", futureQ)
+
+                y_true[j,:] = futureQ*gamma
+
+                #print("y_true[j]: ", y_true[j,:])
+                #print("Replay Memory: j[1]", replayMemory[j][1])
+                #print("Replay Memory: j[2]", replayMemory[j][2])
+
+                y_true[j,replayMemory[j][1]] += replayMemory[j][2]
+
+
+
+        #print("Batched States: ", batchedStates)
+        model.train_on_batch(batchedStates,np.array(y_true))
+
+model.save('pong_model-v0')
         
 # score = model.evaluate(x_test, y_test, verbose=0)
 # print('Test loss:', score[0])
