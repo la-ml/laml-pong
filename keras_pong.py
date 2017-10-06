@@ -1,3 +1,5 @@
+import sys
+
 import keras
 from keras.datasets import mnist
 from keras.models import Sequential
@@ -11,6 +13,8 @@ import math
 
 import gym
 import os
+
+import uuid
 
 # Stop complaining about my CPU's Power Level
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
@@ -75,17 +79,29 @@ model.compile(loss=keras.losses.categorical_crossentropy,
 episodes = 20
 epsilon = 0.05
 gamma = 0.95
-replayMemory = [None]
+replayMemory = []
 firstAction = True
 batchSize = 10
+maxMemorySize = 100
 
 for i in range(episodes):
     state = env.reset()
     frameSequence = np.zeros((height*numFrames, width, color))
     frameSequence[:height,:,:] = state
     framesFilled = 1
+    done = False
+
+    print("Episode: ", i)
+
+    # Debugging
+    totalMem = 0
+
+    for mem in replayMemory:
+        totalMem += mem[0].nbytes
+        totalMem += mem[4].nbytes
+    print("Total Memory:", totalMem)
+
     while not done:
-        
         #if it's the first action, do random because network hasn't been trained yet
         if firstAction:
             action = math.floor(random.random()*len(possibleActions))
@@ -112,6 +128,9 @@ for i in range(episodes):
             frameSequence[:height,:,:] = state
             
         #save to replayMemory
+        if len(replayMemory) >= maxMemorySize:
+            replayMemory.pop(0)
+
         replayMemory.append([currentFrameSequence, action, reward, done, frameSequence])
         
         #if replay memory is less than the batch size, 
@@ -143,7 +162,12 @@ for i in range(episodes):
                 y_true[j,:] = gamma*futureQ
                 y_true[j,theMemory[1]] += theMemory[2]
         model.train_on_batch(batchedStates,y_true)
-        
+
+uuid = str(uuid.uuid4())
+filename = 'Pong-v1_{0}'.format(uuid)
+print("Saving {0}".format(filename))
+model.save(filename)
+
 # score = model.evaluate(x_test, y_test, verbose=0)
 # print('Test loss:', score[0])
 # print('Test accuracy:', score[1])
