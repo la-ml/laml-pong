@@ -70,14 +70,15 @@ model.add(Dense(256, activation='relu'))
 for each valid action. The number of valid actions varied between 4 and 18 on 
 the games we considered. 
 '''
-model.add(Dense(len(possibleActions), activation='softmax'))
+model.add(Dense(len(possibleActions), activation=None))
 
-model.compile(loss=keras.losses.categorical_crossentropy,
+model.compile(loss=keras.losses.mean_squared_error,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 
-episodes = 20
-epsilon = 0.05
+episodes = 50
+#epsilon = 0.05
+epsilon = 1
 gamma = 0.95
 replayMemory = []
 firstAction = True
@@ -85,6 +86,7 @@ batchSize = 10
 maxMemorySize = 100
 
 for i in range(episodes):
+    epsilon = 1/(i+1)
     state = env.reset()
     frameSequence = np.zeros((height*numFrames, width, color))
     frameSequence[:height,:,:] = state
@@ -113,7 +115,11 @@ for i in range(episodes):
                 action = math.floor(random.random()*len(possibleActions))
             else:
                 reshapedSequence = frameSequence.reshape(1,height*numFrames,width,color)
-                action = np.argmax(model.predict(reshapedSequence, batch_size=1))
+                model_prediction = model.predict(reshapedSequence, batch_size=1)
+                print("Model Prediction: ", model_prediction)
+                action = np.argmax(model_prediction)
+                print("Action: ", action)
+
                 
         #save the current sequence, get the next frame, and then add it to the frame sequence
         currentFrameSequence = frameSequence
@@ -124,8 +130,9 @@ for i in range(episodes):
             framesFilled += 1
         else:
             #shift all the frames down, and then add the new frame
-            frameSequence[height:,:,:] = frameSequence[:height*(numFrames-1),:,:]
-            frameSequence[:height,:,:] = state
+            frameSequence[:height*(numFrames-1),:,:] = frameSequence[height:,:,:] 
+            frameSequence[height*(numFrames-1):,:,:] = state
+            #print("Frame Sequence:", frameSequence)
             
         #save to replayMemory
         if len(replayMemory) >= maxMemorySize:
