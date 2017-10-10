@@ -76,17 +76,30 @@ model.compile(loss=keras.losses.mean_squared_error,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 
-episodes = 50
+
+episodes = 20000
 #epsilon = 0.05
 epsilon = 1
-gamma = 0.95
+gamma = 0.9999
 replayMemory = []
 firstAction = True
 batchSize = 10
 maxMemorySize = 100
 
+uuid = str(uuid.uuid4())
+filename = 'Pong-v1_{0}'.format(uuid)
+print("Saving {0}".format(filename))
+
 for i in range(episodes):
-    epsilon = 1/(i+1)
+
+    if (i % 10 == 0):
+        model.save(filename)
+
+    if (i % 500 == 0):
+        temp_filename = '{0}-{1}'.format(filename, i)
+        model.save(temp_filename)
+
+    epsilon = max(0.05, 1-(0.001*i))
     state = env.reset()
     frameSequence = np.zeros((height*numFrames, width, color))
     frameSequence[:height,:,:] = state
@@ -96,12 +109,12 @@ for i in range(episodes):
     print("Episode: ", i)
 
     # Debugging
-    totalMem = 0
+    #totalMem = 0
 
-    for mem in replayMemory:
-        totalMem += mem[0].nbytes
-        totalMem += mem[4].nbytes
-    print("Total Memory:", totalMem)
+    #for mem in replayMemory:
+    #    totalMem += mem[0].nbytes
+    #    totalMem += mem[4].nbytes
+    #print("Total Memory:", totalMem)
 
     while not done:
         #if it's the first action, do random because network hasn't been trained yet
@@ -116,9 +129,9 @@ for i in range(episodes):
             else:
                 reshapedSequence = frameSequence.reshape(1,height*numFrames,width,color)
                 model_prediction = model.predict(reshapedSequence, batch_size=1)
-                print("Model Prediction: ", model_prediction)
+                #print("Model Prediction: ", model_prediction)
                 action = np.argmax(model_prediction)
-                print("Action: ", action)
+                #print("Action: ", action)
 
                 
         #save the current sequence, get the next frame, and then add it to the frame sequence
@@ -170,9 +183,6 @@ for i in range(episodes):
                 y_true[j,theMemory[1]] += theMemory[2]
         model.train_on_batch(batchedStates,y_true)
 
-uuid = str(uuid.uuid4())
-filename = 'Pong-v1_{0}'.format(uuid)
-print("Saving {0}".format(filename))
 model.save(filename)
 
 # score = model.evaluate(x_test, y_test, verbose=0)
