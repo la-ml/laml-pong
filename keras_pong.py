@@ -15,6 +15,7 @@ import gym
 import os
 
 import uuid
+import time
 
 # Stop complaining about my CPU's Power Level
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
@@ -77,14 +78,16 @@ model.compile(loss=keras.losses.mean_squared_error,
               metrics=['accuracy'])
 
 
-episodes = 20000
+episodes = 10
 #epsilon = 0.05
 epsilon = 1
 gamma = 0.9999
 replayMemory = []
 firstAction = True
 batchSize = 10
-maxMemorySize = 100
+maxMemorySize = 10000
+
+frames = 0
 
 uuid = str(uuid.uuid4())
 filename = 'Pong-v1_{0}'.format(uuid)
@@ -101,12 +104,11 @@ for i in range(episodes):
 
     epsilon = max(0.05, 1-(0.001*i))
     state = env.reset()
+    frames += 1
     frameSequence = np.zeros((height*numFrames, width, color))
     frameSequence[:height,:,:] = state
     framesFilled = 1
     done = False
-
-    print("Episode: ", i)
 
     # Debugging
     #totalMem = 0
@@ -116,7 +118,14 @@ for i in range(episodes):
     #    totalMem += mem[4].nbytes
     #print("Total Memory:", totalMem)
 
+    start_time = time.time()
+    print("Episode: ", i, "Frames: ", frames)
     while not done:
+        if (frames % 60 == 0):
+            end_time = time.time() - start_time 
+            print("Frames: ", frames, "Frame Time: ", (end_time / 60) )
+            start_time = time.time()
+
         #if it's the first action, do random because network hasn't been trained yet
         if firstAction:
             action = math.floor(random.random()*len(possibleActions))
@@ -137,6 +146,7 @@ for i in range(episodes):
         #save the current sequence, get the next frame, and then add it to the frame sequence
         currentFrameSequence = frameSequence
         state, reward, done, _ = env.step(possibleActions[action])
+        frames += 1
         
         if framesFilled < numFrames:
             frameSequence[height*framesFilled:height*(framesFilled+1),:,:] = state
@@ -183,6 +193,7 @@ for i in range(episodes):
                 y_true[j,theMemory[1]] += theMemory[2]
         model.train_on_batch(batchedStates,y_true)
 
+print("Saving Filename: ", filename)
 model.save(filename)
 
 # score = model.evaluate(x_test, y_test, verbose=0)
