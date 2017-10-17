@@ -6,7 +6,7 @@ import gym
 
 import matplotlib.pyplot as plt
 
-model = keras.models.load_model('Pong-v1_35c9efbe-8f27-4694-bfd2-052d48ada62a')
+model = keras.models.load_model('Pong-v1_1eddef71-6471-4334-9744-3bf2dd3c93d4')
 
 env = gym.make('Pong-v0')
 
@@ -15,6 +15,8 @@ state = env.reset()
 done = False
 
 height, width, color = len(state), len(state[0]), len(state[0][0])
+
+color = 1
 
 possibleActions = [1, 2, 3]
 numFrames = 4
@@ -32,32 +34,38 @@ do_up = 0
 
 plt.ion()
 
+greyscale_state = None
+
 while not done:
+    greyscale_state = np.reshape(state[:,:,1], (height, width, 1))/255
+
     if (framesFilled < numFrames):
-        frameSequence[height*framesFilled:height*(framesFilled+1),:,:] = state
+        frameSequence[height*framesFilled:height*(framesFilled+1),:,:] = greyscale_state
         framesFilled += 1
     else:
         #shift all the frames down, and then add the new frame
         frameSequence[:height*(numFrames-1),:,:] = frameSequence[height:,:,:]         
-        frameSequence[height*(numFrames-1):,:,:] = state
+        frameSequence[height*(numFrames-1):,:,:] = greyscale_state
 
 #    frameSequence = np.random.randint(0,255,(height*numFrames,width,color))
 
     
-    plt.clf()
-    plt.imshow(frameSequence)
-    plt.draw()
+    #plt.clf()
+    #plt.imshow(frameSequence)
+    #plt.draw()
 
-    input("Press the Any Key")
+    #input("Press the Any Key")
 
 
     reshapedSequence = frameSequence.reshape(1, height*numFrames, width, color)
     model_prediction = model.predict(reshapedSequence, batch_size=1)
 
-    if (np.random.random() < epsilon):
-        action = int(np.random.random() * 3)
-    else:
-        action = np.argmax(model_prediction)
+    #if (np.random.random() < epsilon):
+    #    action = int(np.random.random() * 3)
+    #else:
+    #    action = np.argmax(model_prediction)
+
+    action = np.argmax(model_prediction)
 
     if (do_up < pause):
         action = pause_action
