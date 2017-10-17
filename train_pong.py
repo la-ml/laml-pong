@@ -20,14 +20,15 @@ import time
 # Stop complaining about my CPU's Power Level
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-model = Sequential()
-
 
 # Q Network
 env = gym.make('Pong-v0')
 env.reset()
 state, reward, done, meta = env.step(env.action_space.sample())
 height, width, color = len(state), len(state[0]), len(state[0][0])
+
+# Make Greyscale
+color = 1
 
 print('Screen Dimentions')
 print('Height', height)
@@ -104,9 +105,10 @@ for i in range(episodes):
 
     epsilon = max(0.05, 1-(0.001*i))
     state = env.reset()
+    greyscale_state = np.reshape(state[:,:,1], (height,width, 1))/255
     frames += 1
     frameSequence = np.zeros((height*numFrames, width, color))
-    frameSequence[:height,:,:] = state
+    frameSequence[:height,:,:] = greyscale_state
     framesFilled = 1
     done = False
 
@@ -146,15 +148,16 @@ for i in range(episodes):
         #save the current sequence, get the next frame, and then add it to the frame sequence
         currentFrameSequence = frameSequence
         state, reward, done, _ = env.step(possibleActions[action])
+        greyscale_state = np.reshape(state[:,:,1], (height,width, 1))/255
         frames += 1
         
         if framesFilled < numFrames:
-            frameSequence[height*framesFilled:height*(framesFilled+1),:,:] = state
+            frameSequence[height*framesFilled:height*(framesFilled+1),:,:] = greyscale_state
             framesFilled += 1
         else:
             #shift all the frames down, and then add the new frame
             frameSequence[:height*(numFrames-1),:,:] = frameSequence[height:,:,:] 
-            frameSequence[height*(numFrames-1):,:,:] = state
+            frameSequence[height*(numFrames-1):,:,:] = greyscale_state
             #print("Frame Sequence:", frameSequence)
             
         #save to replayMemory
