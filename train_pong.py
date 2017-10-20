@@ -1,11 +1,9 @@
 import sys
 
 import keras
-from keras.datasets import mnist
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv2D, MaxPooling2D
-from keras import backend as K
+from keras.layers import Dense, Flatten
+from keras.layers import Conv2D
 
 import numpy as np
 import random
@@ -97,10 +95,12 @@ print("Saving {0}".format(filename))
 for i in range(episodes):
 
     if (i % 10 == 0):
+        print("Saving file: ", filename)
         model.save(filename)
 
     if (i % 500 == 0):
         temp_filename = '{0}-{1}'.format(filename, i)
+        print("Saving file: ", temp_filename)
         model.save(temp_filename)
 
     epsilon = max(0.05, 1-(0.001*i))
@@ -194,6 +194,7 @@ for i in range(episodes):
                 futureQ = model.predict(reshapedSequence,batch_size=1)
                 y_true[j,:] = gamma*futureQ
                 y_true[j,theMemory[1]] += theMemory[2]
+                print("FutureQ:", futureQ, "y_true[j,:]: ", y_true[j,:])        
         model.train_on_batch(batchedStates,y_true)
 
 print("Saving Filename: ", filename)
@@ -210,73 +211,3 @@ model.save(filename)
 #     state, reward, done, _ = env.step(random_action)
 #
 #     print('Reward:', reward)
-
-
-
-'''
-We now describe the exact architecture used for all seven Atari games.
-
-[1] The input to the neural network consists is an 84×84×4 image produced by φ. 
-    [1.1] LAML: We will use the original screen dimensions 
-    
-[2] The first hidden layer convolves 16 8×8 filters with stride 4 with the input 
-image and applies a rectifier non-linearity.  
-
-[3] The second hidden layer convolves 32 4×4 filters with stride 2, 
-- [3.1] again followed by a rectifier nonlinearity. 
-
-[4] The final hidden layer is fully-connected and consists of 256 rectifier units.  
-
-[5] The output layer is a fully-connected linear layer with a single output 
-for each valid action. The number of valid actions varied between 4 and 18 on 
-the games we considered. 
-
-We refer to convolutional networks trained with our approach as 
-Deep Q-Networks (DQN).
-'''
-
-'''
-Gets an 84x84x4 Tensor from Gym of the past 4 frames
-'''
-def get_frames(gym):
-    return True
-
-
-'''
-    for i in range(num_episodes):
-        # Reset environment and get first new observation
-        s = env.reset()
-        rewardsAll = 0
-        done = False # Done
-        stage = 0
-        # The Q-Network
-        while stage < 99:
-            stage += 1
-            # Choose an action by greedily (with e chance of random action) from the Q-network
-            action, allQ = sess.run([predict, Qout], feed_dict={inputs1: np.identity(16)[s:s + 1]})
-            if np.random.rand(1) < e:
-                action[0] = env.action_space.sample()
-
-            # Get new state and reward from environment
-            s1, reward, done, _ = env.step(action[0])
-
-            # Obtain the Q' values by feeding the new state through our network
-            Q1 = sess.run(Qout, feed_dict={inputs1: np.identity(16)[s1:s1 + 1]})
-
-            # Obtain maxQ' and set our target value for chosen action.
-            maxQ1 = np.max(Q1)
-            targetQ = allQ
-            targetQ[0, action[0]] = reward + y * maxQ1
-
-            # Train our network using target and predicted Q values
-            _, W1 = sess.run([updateModel, W], feed_dict={inputs1: np.identity(16)[s:s + 1], nextQ: targetQ})
-            rewardsAll += reward
-            s = s1
-
-            if done == True:
-                # Reduce chance of random action as we train the model.
-                e = 1. / ((i / 50) + 10)
-                break
-        stageList.append(stage)
-        rewardsList.append(rewardsAll)
-'''
