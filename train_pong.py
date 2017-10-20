@@ -7,7 +7,7 @@ from keras.layers import Conv2D
 
 import numpy as np
 import random
-import math 
+import math
 
 import gym
 import os
@@ -16,7 +16,7 @@ import uuid
 import time
 
 # Stop complaining about my CPU's Power Level
-os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 # Q Network
@@ -41,17 +41,17 @@ numFrames = 4
 
 model = Sequential()
 '''
-[2] The first hidden layer convolves 16 8×8 filters with stride 4 with the 
-    input image and applies a rectifier non-linearity.  
+[2] The first hidden layer convolves 16 8×8 filters with stride 4 with the
+    input image and applies a rectifier non-linearity.
 '''
 model.add(Conv2D(16,
                  kernel_size=(8, 8),
                  activation='relu',
                  strides=4,
-                 input_shape=(height*numFrames, width, color)))
+                 input_shape=(height * numFrames, width, color)))
 '''
-[3] The second hidden layer convolves 32 4×4 filters with stride 2, 
-    - [3.1] again followed by a rectifier nonlinearity. 
+[3] The second hidden layer convolves 32 4×4 filters with stride 2,
+    - [3.1] again followed by a rectifier nonlinearity.
 '''
 model.add(Conv2D(32,
                  kernel_size=(4, 4),
@@ -60,15 +60,15 @@ model.add(Conv2D(32,
 
 model.add(Flatten())
 '''
-[4] The final hidden layer is fully-connected and consists of 256 
-    rectifier units.  
+[4] The final hidden layer is fully-connected and consists of 256
+    rectifier units.
 '''
 model.add(Dense(256, activation='relu'))
 
 '''
-[5] The output layer is a fully-connected linear layer with a single output 
-for each valid action. The number of valid actions varied between 4 and 18 on 
-the games we considered. 
+[5] The output layer is a fully-connected linear layer with a single output
+for each valid action. The number of valid actions varied between 4 and 18 on
+the games we considered.
 '''
 model.add(Dense(len(possibleActions), activation=None))
 
@@ -76,6 +76,7 @@ model.compile(loss=keras.losses.mean_squared_error,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 
+print(model.summary())
 
 episodes = 5000
 #epsilon = 0.05
@@ -95,30 +96,30 @@ print("Saving {0}".format(filename))
 for i in range(episodes):
 
     #sum = 0
-    #for mem in replayMemory:
+    # for mem in replayMemory:
     #    sum += mem[0].nbytes + mem[4].nbytes
 
     if (i % 10 == 0):
-        model.save(filename+"_snapshot")
+        model.save(filename + "_snapshot")
 
     if (i % 250 == 0):
         temp_filename = '{0}-{1}'.format(filename, i)
         print("Saving file: ", temp_filename)
         model.save(temp_filename)
 
-    epsilon = max(0.05, 1-(0.001*i))
+    epsilon = max(0.05, 1 - (0.001 * i))
     state = env.reset()
-    greyscale_state = np.reshape(state[:,:,1], (height,width, 1))/255
+    greyscale_state = np.reshape(state[:, :, 1], (height, width, 1)) / 255
     frames += 1
-    frameSequence = np.zeros((height*numFrames, width, color))
-    frameSequence[:height,:,:] = greyscale_state
+    frameSequence = np.zeros((height * numFrames, width, color))
+    frameSequence[:height, :, :] = greyscale_state
     framesFilled = 1
     done = False
 
     # Debugging
     #totalMem = 0
 
-    #for mem in replayMemory:
+    # for mem in replayMemory:
     #    totalMem += mem[0].nbytes
     #    totalMem += mem[4].nbytes
     #print("Total Memory:", totalMem)
@@ -131,7 +132,7 @@ for i in range(episodes):
 
         #sum = 0
 
-        #for mem in replayMemory:
+        # for mem in replayMemory:
         #    sum += mem[0].nbytes + mem[4].nbytes
 
         if frames % 60 == 0:
@@ -140,74 +141,92 @@ for i in range(episodes):
             print("Frames: ", frames, "Frame Time: ", (end_time / 60))
             start_time = time.time()
 
-        #if it's the first action, do random because network hasn't been trained yet
+        # if it's the first action, do random because network hasn't been
+        # trained yet
         if firstAction:
-            action = math.floor(random.random()*len(possibleActions))
+            action = math.floor(random.random() * len(possibleActions))
             firstAction = False
         else:
-            #with probability epsilon do a random action, otherwise use the neural network to choose best action
+            # with probability epsilon do a random action, otherwise use the
+            # neural network to choose best action
             randomNumber = random.random()
             if randomNumber < epsilon:
-                action = math.floor(random.random()*len(possibleActions))
+                action = math.floor(random.random() * len(possibleActions))
             else:
-                reshapedSequence = frameSequence.reshape(1,height*numFrames,width,color)
-                model_prediction = model.predict(reshapedSequence, batch_size=1)
+                reshapedSequence = frameSequence.reshape(
+                    1, height * numFrames, width, color)
+                model_prediction = model.predict(
+                    reshapedSequence, batch_size=1)
                 #print("Model Prediction: ", model_prediction)
                 action = np.argmax(model_prediction)
                 #print("Action: ", action)
 
-                
-        #save the current sequence, get the next frame, and then add it to the frame sequence
+        # save the current sequence, get the next frame, and then add it to the
+        # frame sequence
         currentFrameSequence = frameSequence
         state, reward, done, _ = env.step(possibleActions[action])
-        greyscale_state = np.reshape(state[:,:,1], (height,width, 1))/255
+        greyscale_state = np.reshape(state[:, :, 1], (height, width, 1)) / 255
         frames += 1
-        
+
         if framesFilled < numFrames:
-            frameSequence[height*framesFilled:height*(framesFilled+1),:,:] = greyscale_state
+            frameSequence[height * framesFilled:height *
+                          (framesFilled + 1), :, :] = greyscale_state
             framesFilled += 1
         else:
-            #shift all the frames down, and then add the new frame
-            frameSequence[:height*(numFrames-1),:,:] = frameSequence[height:,:,:] 
-            frameSequence[height*(numFrames-1):,:,:] = greyscale_state
+            # shift all the frames down, and then add the new frame
+            frameSequence[:height * (numFrames - 1), :,
+                          :] = frameSequence[height:, :, :]
+            frameSequence[height * (numFrames - 1):, :, :] = greyscale_state
             #print("Frame Sequence:", frameSequence)
-            
-        #save to replayMemory
+
+        # save to replayMemory
         if len(replayMemory) >= maxMemorySize:
             replayMemory.pop(0)
 
-        replayMemory.append([currentFrameSequence, action, reward, done, frameSequence])
-        
-        #if replay memory is less than the batch size, 
-        #use all of the replay memory, otherwise take a random sample
+        replayMemory.append([currentFrameSequence, action,
+                             reward, done, frameSequence])
+
+        # if replay memory is less than the batch size,
+        # use all of the replay memory, otherwise take a random sample
         if len(replayMemory) <= batchSize:
             actualBatchSize = len(replayMemory)
             memoryIndices = list(range(actualBatchSize))
         else:
             actualBatchSize = batchSize
             memoryIndices = random.sample(range(len(replayMemory)), batchSize)
-            
-        #create the batched states and y_true arrays
-        batchedStates = np.zeros((actualBatchSize,height*numFrames,width,color))
-        y_true = np.zeros((actualBatchSize,len(possibleActions)))
+
+        print(
+            "Memory Indicies: ",
+            memoryIndices,
+            "Replay Memory Size: ",
+            len(replayMemory))
+
+        # create the batched states and y_true arrays
+        batchedStates = np.zeros(
+            (actualBatchSize, height * numFrames, width, color))
+        y_true = np.zeros((actualBatchSize, len(possibleActions)))
         for j in range(len(memoryIndices)):
             theMemory = replayMemory[memoryIndices[j]]
-            #add the current state from the replay memory to the batched states
-            batchedStates[j,:,:,:] = theMemory[0]
-            #if done = true in the replay memory, just set the index of y_true corresponding 
-            #to the action taken to the reward received
+            # add the current state from the replay memory to the batched
+            # states
+            batchedStates[j, :, :, :] = theMemory[0]
+            # if done = true in the replay memory, just set the index of y_true corresponding
+            # to the action taken to the reward received
             if theMemory[3]:
-                y_true[j,theMemory[1]] = theMemory[2]
+                y_true[j, theMemory[1]] = theMemory[2]
             else:
-                #in addition to setting the index of y_true corresponding to the 
-                #action taken to the reward received, add the value of Q for the next state,
-                #discounted by gamma
-                reshapedSequence = theMemory[4].reshape(1,height*numFrames,width,color)
-                futureQ = model.predict(reshapedSequence,batch_size=1)
-                y_true[j,:] = gamma*futureQ
-                y_true[j,theMemory[1]] += theMemory[2]
-                print("FutureQ:", futureQ, "y_true[j,:]: ", y_true[j,:])        
-        model.train_on_batch(batchedStates,y_true)
+                # in addition to setting the index of y_true corresponding to the
+                # action taken to the reward received, add the value of Q for the next state,
+                # discounted by gamma
+                reshapedSequence = theMemory[4].reshape(
+                    1, height * numFrames, width, color)
+                futureQ = model.predict(reshapedSequence, batch_size=1)
+                y_true[j, :] = gamma * futureQ
+                y_true[j, theMemory[1]] += theMemory[2]
+                if(theMemory[2] != 0):
+                    print("FutureQ:", futureQ, "y_true[j,:]: ", y_true[j, :])
+
+        model.train_on_batch(batchedStates, y_true)
 
 final_filename = filename + "_final"
 print("Saving Filename: ", final_filename)
