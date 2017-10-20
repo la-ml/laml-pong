@@ -1,12 +1,14 @@
+import argparse
 import keras
-
 import numpy as np
-
 import gym
-
 import matplotlib.pyplot as plt
 
-model = keras.models.load_model('Pong-v1_79360087-af11-4db5-9878-12158cfee1bd')
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', default='Pong-v1_1eddef71-6471-4334-9744-3bf2dd3c93d4')
+args = parser.parse_args()
+
+model = keras.models.load_model(args.model)
 
 env = gym.make('Pong-v0')
 
