@@ -79,7 +79,7 @@ model.compile(loss=keras.losses.mean_squared_error,
               metrics=['accuracy'])
 
 
-episodes = 10
+episodes = 5000
 #epsilon = 0.05
 epsilon = 1
 gamma = 0.9999
@@ -96,10 +96,14 @@ print("Saving {0}".format(filename))
 
 for i in range(episodes):
 
-    if (i % 10 == 0):
-        model.save(filename)
+    #sum = 0
+    #for mem in replayMemory:
+    #    sum += mem[0].nbytes + mem[4].nbytes
 
-    if (i % 500 == 0):
+    if (i % 10 == 0):
+        model.save(filename+"_snapshot")
+
+    if (i % 250 == 0):
         temp_filename = '{0}-{1}'.format(filename, i)
         model.save(temp_filename)
 
@@ -121,11 +125,20 @@ for i in range(episodes):
     #print("Total Memory:", totalMem)
 
     start_time = time.time()
+    #print("Episode: ", i, "Frames: ", frames, "Replay Memory: ", sum)
     print("Episode: ", i, "Frames: ", frames)
+
     while not done:
+
+        #sum = 0
+
+        #for mem in replayMemory:
+        #    sum += mem[0].nbytes + mem[4].nbytes
+
         if (frames % 60 == 0):
             end_time = time.time() - start_time 
-            print("Frames: ", frames, "Frame Time: ", (end_time / 60) )
+            #print("Frames: ", frames, "Frame Time: ", (end_time / 60), "Replay Memory: ", sum )
+            print("Frames: ", frames, "Frame Time: ", (end_time / 60))
             start_time = time.time()
 
         #if it's the first action, do random because network hasn't been trained yet
@@ -196,8 +209,9 @@ for i in range(episodes):
                 y_true[j,theMemory[1]] += theMemory[2]
         model.train_on_batch(batchedStates,y_true)
 
-print("Saving Filename: ", filename)
-model.save(filename)
+final_filename = filename + "_final"
+print("Saving Filename: ", final_filename)
+model.save(final_filename)
 
 # score = model.evaluate(x_test, y_test, verbose=0)
 # print('Test loss:', score[0])

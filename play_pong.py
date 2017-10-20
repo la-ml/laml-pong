@@ -6,7 +6,7 @@ import gym
 
 import matplotlib.pyplot as plt
 
-model = keras.models.load_model('Pong-v1_1eddef71-6471-4334-9744-3bf2dd3c93d4')
+model = keras.models.load_model('Pong-v1_79360087-af11-4db5-9878-12158cfee1bd')
 
 env = gym.make('Pong-v0')
 
@@ -75,5 +75,5 @@ while not done:
     print("Frame Sequence Sum: ", frameSequence.sum())
     print("Model Predition: ", model_prediction)
     print("Action: ", action)
-    env.render('human')
+    #env.render('human')
     state, _, done, meta = env.step(possibleActions[action])
